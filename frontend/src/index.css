@@ -1,0 +1,40 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  h1, h2, h3, h4 {
+    @apply font-display text-ink;
+  }
+  :focus-visible {
+    @apply outline outline-2 outline-offset-2 outline-chili;
+  }
+}
+
+@layer utilities {
+  /* Zigzag torn-paper edge, used on receipt-style cards (cart / checkout / order tracker) */
+  .torn-bottom {
+    position: relative;
+  }
+  .torn-bottom::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: -9px;
+    height: 16px;
+    background: linear-gradient(-45deg, transparent 8px, inherit 8px),
+      linear-gradient(45deg, transparent 8px, inherit 8px);
+    background-size: 16px 16px;
+    background-repeat: repeat-x;
+    background-color: transparent;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
