@@ -1,6 +1,6 @@
 const express = require("express");
-const cors = require("cors");
-const helmet = require("helmet");
+const cors = require("cors");//It allows your backend to control which other websites are allowed to make requests to it.
+const helmet = require("helmet"); //its used to set response headers as express sends very few headers and it can be misused 
 const cookieParser = require("cookie-parser");
 const authRoutes = require("./routes/auth.routes");
 const restaurantRoutes = require("./routes/restaurant.routes");
