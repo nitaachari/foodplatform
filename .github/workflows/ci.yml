@@ -14,3 +14,23 @@ jobs:
 
       - run: npm ci
         working-directory: server
+
+      - run: npm test
+        working-directory: server
+        env:
+          JWT_SECRET: test_secret_for_ci
+          JWT_EXPIRE: 7d
+          STRIPE_SECRET_KEY: sk_test_dummy_key_for_ci
+
+  docker-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Create placeholder env file for backend build
+        run: echo "PLACEHOLDER=true" > server/.env
+
+      - name: Build Docker images
+        run: docker compose build
+        env:
+          VITE_STRIPE_PUBLISHABLE_KEY: pk_test_dummy_key_for_ci
