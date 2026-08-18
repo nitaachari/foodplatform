@@ -19,10 +19,10 @@ const createMenuItem = async (
         images,
         price,
         discountPrice,
-        foodType,
+        foodType, //veg or non veg or egg
         ingredients,
         customizationOptions,
-        preparationTime
+        preparationTime 
     } = menuData;
 
 
@@ -98,7 +98,7 @@ const createMenuItem = async (
 
     }
 
-
+//after validating if data is accurate and authorized and belongs to then create 
 
     const menuItem =
         await MenuItem.create({
@@ -282,7 +282,7 @@ const updateMenuItem = async (
 
 
 
-    const allowedFields = [
+    const allowedFields = [ //the fields that you can update
 
         "name",
         "description",
@@ -307,7 +307,7 @@ const updateMenuItem = async (
             ){
 
                 menuItem[field] =
-                    updateData[field];
+                    updateData[field]; //update it should not be undefined
 
             }
 
@@ -316,7 +316,7 @@ const updateMenuItem = async (
 
 
 
-    if(updateData.name){
+    if(updateData.name){ //so that we dont add the not normalized name
 
         menuItem.name =
             updateData.name

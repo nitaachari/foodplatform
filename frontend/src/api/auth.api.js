@@ -12,6 +12,12 @@ export const loginRequest = (data) =>
 export const logoutRequest = () =>
   api.post("/auth/logout").then((res) => res.data);
 
-// GET /api/auth/me  (protected)
+// GET /api/auth/me  (protected) this is for whenever refresh happens its a use effect thing 
 export const getMeRequest = () =>
   api.get("/auth/me").then((res) => res.data);
+/*
+axios.post("/auth/login", {
+    email,
+    password
+});
+*/

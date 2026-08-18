@@ -62,7 +62,7 @@ const paymentSchema = new Schema(
     },
 
 
-    stripePaymentIntentId:{
+    stripePaymentIntentId:{  /*sparse: true is supposed to mean "don't enforce uniqueness for documents where this field is completely missing." But there's a sharp edge here worth knowing: "missing" and "explicitly set to null" are two different things to MongoDB. */
         type:String,
         unique:true,
         sparse:true

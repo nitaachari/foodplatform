@@ -12,7 +12,7 @@ const PORT = process.env.PORT || 5000;
 
 // Database Connection
 
-connectDB();
+connectDB(); //establish database connection
 
 
 // Start Server

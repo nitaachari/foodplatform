@@ -78,10 +78,10 @@ app.get(
 
     }
 );
-app.use(
+app.use( 
     "/api/auth",
-    authRoutes
-);
+    authRoutes //this a middleware
+); //now what happens here is basically we are routing or rather lets say run this middleware for all paths that have this url 
 app.use("/api/restaurants", restaurantRoutes);
 app.use(
     "/api/categories",

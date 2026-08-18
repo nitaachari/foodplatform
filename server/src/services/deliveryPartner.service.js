@@ -29,7 +29,7 @@ const createProfile = async (
     } = data;
 
     const existingProfile = await DeliveryPartner.findOne({
-        user: userId
+        user: userId //now check if the user is trying to create another profile
     });
 
     if (existingProfile) {
@@ -46,7 +46,7 @@ const createProfile = async (
 
             user: userId,
 
-            phone,
+            phone, //does not have to match the phone number you have put while registering same like restaurant
 
             licenseNumber,
 
@@ -59,7 +59,7 @@ const createProfile = async (
         // Duplicate key error — most likely the unique licenseNumber
         if (error.code === 11000) {
             throw new Error(
-                "That license number is already registered."
+                "That license number is already registered." //everyone will have a unique license number
             );
         }
 
@@ -82,7 +82,7 @@ const getMyProfile = async (
 ) => {
 
     const profile = await DeliveryPartner.findOne({
-        user: userId
+        user: userId //we have a seperate schema and model for delivery partners 
     });
 
     if (!profile) {
@@ -102,17 +102,17 @@ const getMyProfile = async (
 // ======================================
 
 const updateStatus = async (
-    userId,
+    userId, //this is the unique way to identify delivery partner
     status
 ) => {
 
-    if (!ALLOWED_STATUSES.includes(status)) {
+    if (!ALLOWED_STATUSES.includes(status)) { //if not in the allowed statuses
         throw new Error(
             "Invalid status. Must be one of: " + ALLOWED_STATUSES.join(", ")
         );
     }
 
-    const profile = await DeliveryPartner.findOne({
+    const profile = await DeliveryPartner.findOne({ //the first one
         user: userId
     });
 
@@ -128,7 +128,7 @@ const updateStatus = async (
         );
     }
 
-    profile.status = status;
+    profile.status = status; //update the status
 
     await profile.save();
 
@@ -142,7 +142,7 @@ const updateStatus = async (
 // Update Current Location
 // ======================================
 
-const updateLocation = async (
+const updateLocation = async ( //used for google map 
     userId,
     coordinates
 ) => {
@@ -153,7 +153,7 @@ const updateLocation = async (
         coordinates.some((value) => typeof value !== "number")
     ) {
         throw new Error(
-            "coordinates must be [longitude, latitude]."
+            "coordinates must be [longitude, latitude]." //if not an array or length is not 2 or the values are not number
         );
     }
 
@@ -167,7 +167,7 @@ const updateLocation = async (
         );
     }
 
-    profile.currentLocation = {
+    profile.currentLocation = { //update the current location here with coordinates
         type: "Point",
         coordinates
     };
@@ -187,7 +187,7 @@ const updateLocation = async (
 // used elsewhere in this project for analytics)
 // ======================================
 
-const getMyEarnings = async (
+const getMyEarnings = async ( //dashboard that contains earnings of the logged in delivery partner
     userId
 ) => {
 
@@ -201,26 +201,28 @@ const getMyEarnings = async (
         );
     }
 
-    const now = new Date();
-
-    const startOfToday = new Date(
+    const now = new Date(); //find todays data as we want data of earnings today this week
+//now = 13 Aug 2026 14:45:30
+    const startOfToday = new Date( //find the full date of today
         now.getFullYear(),
         now.getMonth(),
         now.getDate()
     );
-
+    //but we want orders from the start of today that is midnight so the above code basically resets time to 00:00:00
+// the below code is for The date representing the beginning of the current week. lets say its 13/08/2026 that is thursday so we want the date of the beginning of the current week that is sunday which is 9th august how to find?
+//find which day is it basically and subtract from the date so like if its thursday its the 4th day so 13-4=9 which is sunday
     const startOfWeek = new Date(startOfToday);
     startOfWeek.setDate(
-        startOfToday.getDate() - startOfToday.getDay()
+        startOfToday.getDate() - startOfToday.getDay() //here we are getting the day
     );
 
-    const deliveredOrders = await Order.find({
+    const deliveredOrders = await Order.find({ //find the delivered orders of that partner
         deliveryPartner: profile._id,
         orderStatus: "delivered"
     })
-        .sort({ updatedAt: -1 })
-        .select("pricing.deliveryFee updatedAt createdAt restaurant")
-        .populate("restaurant", "name");
+        .sort({ updatedAt: -1 }) //-1 means descending
+        .select("pricing.deliveryFee updatedAt createdAt restaurant") //only select these
+        .populate("restaurant", "name"); // for restaurant store name
 
     let totalEarnings = 0;
     let todayEarnings = 0;
@@ -228,7 +230,7 @@ const getMyEarnings = async (
 
     deliveredOrders.forEach((order) => {
 
-        const fee = order.pricing?.deliveryFee || 0;
+        const fee = order.pricing?.deliveryFee || 0; //if pricing exists then give fee else 0
 
         totalEarnings += fee;
 
@@ -252,7 +254,7 @@ const getMyEarnings = async (
 
         weekEarnings,
 
-        recentDeliveries: deliveredOrders.slice(0, 20)
+        recentDeliveries: deliveredOrders.slice(0, 20) //thats why we sorted in descending order
 
     };
 

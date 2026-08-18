@@ -46,7 +46,7 @@ const getRestaurantByOwner = async (ownerId) => {
 
 const getAllRestaurants = async () => {
 
-    return await Restaurant.find()
+    return await Restaurant.find() //if we do find without anything so you get all
         .populate("owner", "name email");
 
 };

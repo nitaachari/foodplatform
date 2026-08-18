@@ -12,60 +12,62 @@ const MenuItem = require("../models/MenuItem");
 
 const recalculateRestaurantRating = async (restaurantId) => {
 
-    const [stats] = await Review.aggregate([
+    // 1. Find all reviews belonging to this restaurant
+    const reviews = await Review.find({
+        restaurant: restaurantId
+    });
 
-        {
-            $match: { restaurant: restaurantId }
-        },
+    // 2. Add all the ratings together
+    let totalRating = 0;
 
-        {
-            $group: {
-                _id: "$restaurant",
-                average: { $avg: "$rating" },
-                count: { $sum: 1 }
-            }
-        }
+    for (const review of reviews) {
+        totalRating += review.rating;
+    }
 
-    ]);
+    // 3. Calculate the average
+    const average = reviews.length > 0
+        ? totalRating / reviews.length
+        : 0;
 
+    // 4. Round the average to 1 decimal place
+    const roundedAverage = Math.round(average * 10) / 10;
+
+    // 5. Update the restaurant's cached rating
     await Restaurant.findByIdAndUpdate(restaurantId, {
         rating: {
-            average: stats ? Math.round(stats.average * 10) / 10 : 0,
-            count: stats ? stats.count : 0
+            average: roundedAverage,
+            count: reviews.length
         }
     });
 
 };
-
-
-
-// ======================================
-// Recalculate & persist a menu item's
-// cached rating from its Review documents
-// ======================================
-
 const recalculateMenuItemRating = async (menuItemId) => {
 
-    const [stats] = await Review.aggregate([
+    // 1. Find all reviews belonging to this menu item
+    const reviews = await Review.find({
+        menuItem: menuItemId
+    });
 
-        {
-            $match: { menuItem: menuItemId }
-        },
+    // 2. Add all the ratings together
+    let totalRating = 0;
 
-        {
-            $group: {
-                _id: "$menuItem",
-                average: { $avg: "$rating" },
-                count: { $sum: 1 }
-            }
-        }
+    for (const review of reviews) {
+        totalRating += review.rating;
+    }
 
-    ]);
+    // 3. Calculate the average
+    const average = reviews.length > 0
+        ? totalRating / reviews.length
+        : 0;
 
+    // 4. Round the average to 1 decimal place
+    const roundedAverage = Math.round(average * 10) / 10;
+
+    // 5. Update the menu item's cached rating
     await MenuItem.findByIdAndUpdate(menuItemId, {
         rating: {
-            average: stats ? Math.round(stats.average * 10) / 10 : 0,
-            count: stats ? stats.count : 0
+            average: roundedAverage,
+            count: reviews.length
         }
     });
 
@@ -157,17 +159,17 @@ const createReview = async (
         if (error.code === 11000) {
             throw new Error(
                 "You have already reviewed this order."
-            );
+            ); //checking for duplicacy
         }
 
         throw error;
 
     }
 
-    await recalculateRestaurantRating(order.restaurant);
+    await recalculateRestaurantRating(order.restaurant); //we keep on recalculating the reviews whenever there is a new review
 
     if (menuItemId) {
-        await recalculateMenuItemRating(menuItemId);
+        await recalculateMenuItemRating(menuItemId); //recalculate
     }
 
     return review;
@@ -238,7 +240,7 @@ const getReviewsByMenuItem = async (
 
 const replyToReview = async (
     reviewId,
-    ownerId,
+    ownerId, //only the owner of the restaurant can reply
     replyComment
 ) => {
 
@@ -264,7 +266,7 @@ const replyToReview = async (
         );
     }
 
-    review.reply = {
+    review.reply = { //just modify or add the reply other all things are same
         comment: replyComment,
         repliedAt: new Date()
     };

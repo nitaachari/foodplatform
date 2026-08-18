@@ -19,10 +19,13 @@ import RestaurantOrders from "./pages/restaurant/RestaurantOrders";
 import RestaurantReviews from "./pages/restaurant/RestaurantReviews";
 import DeliveryDashboard from "./pages/delivery/DeliveryDashboard";
 import DeliveryHistory from "./pages/delivery/DeliveryHistory";
+//This is a simple lookup table: "if the URL is exactly this, show this component."
 
-function Shell() {
+function App() {
   return (
     <div className="flex min-h-screen flex-col">
+      <AuthProvider>
+      <CartProvider>
       <Navbar />
       <main className="flex-1">
         <Routes>
@@ -56,16 +59,13 @@ function Shell() {
           <Route path="*" element={<NotFound />} />
         </Routes>
       </main>
+      </CartProvider>
+    </AuthProvider>
+
     </div>
   );
 }
 
-export default function App() {
-  return (
-    <AuthProvider>
-      <CartProvider>
-        <Shell />
-      </CartProvider>
-    </AuthProvider>
-  );
-}
+export default  App;
+  
+

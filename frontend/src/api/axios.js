@@ -10,3 +10,4 @@ const api = axios.create({
 });
 
 export default api;
+//we do this so that you can very easily change the url for backend instead of changing it for each axios.post 

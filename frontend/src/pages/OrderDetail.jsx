@@ -45,7 +45,7 @@ export default function OrderDetail() {
   return (
     <div className="mx-auto max-w-2xl px-4 py-10">
       <p className="font-mono text-xs uppercase tracking-wide text-ink/40">
-        Order #{order._id.slice(-8)}
+        Order #{order._id.slice(-8)} 
       </p>
       <h1 className="mt-1 text-4xl">
         {order.orderStatus === "placed" ? "Order placed!" : "Order status"}

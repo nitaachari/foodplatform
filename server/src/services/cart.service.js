@@ -146,9 +146,16 @@ const addToCart = async (
 
 
 
-    // Check restaurant mismatch
+    // Check restaurant mismatch — only actually a conflict if the
+    // cart still has items sitting in it from a different restaurant.
+    // A cart that's been emptied out (last item removed, or cleared)
+    // still remembers its old `restaurant` value, so without the
+    // items.length check here, it would wrongly block a fresh order
+    // from a different restaurant even though nothing is in the cart.
 
     if(
+        cart.items.length > 0
+        &&
         cart.restaurant.toString()
         !==
         menuItem.restaurant.toString()
@@ -157,6 +164,17 @@ const addToCart = async (
         throw new Error(
             "Cart already contains items from another restaurant."
         );
+
+    }
+
+
+    // Cart is empty (new, or emptied out) — free to attach it
+    // to whichever restaurant this item belongs to.
+
+    if(cart.items.length === 0){
+
+        cart.restaurant =
+            menuItem.restaurant;
 
     }
 

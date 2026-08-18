@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Elements } from "@stripe/react-stripe-js";
+import { Elements } from "@stripe/react-stripe-js"; //for the card element
 import { useCart } from "../context/CartContext";
 import { createOrderRequest } from "../api/order.api";
 import { createPaymentRequest } from "../api/payment.api";
@@ -46,7 +46,7 @@ export default function Checkout() {
   // by the time a card payment is in progress `cart` may already be
   // stale/empty — that must never bounce the customer out of the
   // in-progress payment step.
-  if (cardPayment) {
+  if (cardPayment) { //this is where stripe element is integrated into your frontend and its here that data goes from your client to stripes frontend no server in between as you are typing in stripe ka ui element only
     return (
       <div className="mx-auto max-w-2xl px-4 py-10">
         <h1 className="text-4xl">Checkout</h1>
@@ -60,7 +60,7 @@ export default function Checkout() {
                 paymentId={cardPayment.paymentId}
                 onSuccess={async () => {
                   await refreshCart();
-                  navigate(`/orders/${cardPayment.orderId}`, { replace: true });
+                  navigate(`/orders/${cardPayment.orderId}`, { replace: true }); //go to the order tracking
                 }}
                 onCancel={() => setCardPayment(null)}
               />
@@ -109,13 +109,13 @@ export default function Checkout() {
         },
       };
 
-      // 2. Submit order payload
-      const orderData = await createOrderRequest(deliveryAddress);
+      // 2. Submit order payload that is create the order 
+      const orderData = await createOrderRequest(deliveryAddress,paymentMethod);
       const order = orderData.order;
 
-      const paymentData = await createPaymentRequest(order._id, paymentMethod);
+      const paymentData = await createPaymentRequest(order._id, paymentMethod); //here we create 
 
-      if (paymentMethod === "card") {
+      if (paymentMethod === "card") { //this is very imp
         // Real gateway: hand off to Stripe Elements. The order is
         // already placed at this point — this step only confirms the
         // charge. paymentStatus flips to "paid" server-side, either

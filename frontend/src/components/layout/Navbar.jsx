@@ -7,7 +7,7 @@ export default function Navbar() {
   const { itemCount } = useCart();
   const navigate = useNavigate();
 
-  const handleLogout = async () => {
+  const handleLogout = async () => { //deletes the cookie
     await logout();
     navigate("/login");
   };

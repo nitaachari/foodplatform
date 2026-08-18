@@ -1,6 +1,6 @@
 const express = require("express");
 
-const router = express.Router();
+const router = express.Router(); //router here acts like a mini app
 
 
 const {
@@ -10,16 +10,16 @@ const {
     getMe
 }
 =
-require("../controllers/auth.controller");
+require("../controllers/auth.controller"); //import all the controllers
 
-
+//now another good thing about our backend is layered and its production level now usually the function is written here but we use controllers
 
 const protect=require("../middleware/auth.middleware");
 
 
 
 router.post(
-"/register",
+"/register", 
 register
 );
 
@@ -38,7 +38,7 @@ logout
 
 router.get(
 "/me",
-protect,
+protect, //acts as a middleware
 getMe
 );
 

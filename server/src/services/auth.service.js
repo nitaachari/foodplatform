@@ -1,6 +1,7 @@
 const User = require("../models/User");
 
 const generateToken = require("../utils/generateToken");
+const bcrypt=require("bcrypt");
 
 
 
@@ -18,7 +19,7 @@ const registerUser = async (data) => {
         password,
         phone,
         role
-    } = data;
+    } = data; //destructuring the data and this data comes from the controller where we give req.body as parameter and call this 
 
 
 
@@ -27,13 +28,13 @@ const registerUser = async (data) => {
     const existingUser =
         await User.findOne({
             email
-        });
+        }); //here we check for existing user using email we use await as we want to wait for the answer
 
 
     if (existingUser) {
 
         throw new Error(
-            "User already exists"
+            "User already exists" //if user exists give error
         );
 
     }
@@ -58,7 +59,7 @@ const registerUser = async (data) => {
 
     // Default role for users who do not specify one
 
-    const userRole = role || "customer";
+    const userRole = role || "customer"; //default 
 
 
 
@@ -68,28 +69,34 @@ const registerUser = async (data) => {
             "Invalid role"
         );
 
-    }
+    } //here we check if the role is either customer or delivery partner or user 
+    // In registerUser, right before saving:
+const salt = await bcrypt.genSalt(10); //random
+//gensalt is generate salt and 10 rounds of it
+/*
+"Salt" is just a small random ingredient. Here's why it matters: imagine two different users both pick the exact same password, "password123". Without salt, they'd end up with the exact same scrambled result — and anyone looking at the database could tell "oh, these two people use the same password." Salt mixes in something random and different for each user, so even identical passwords end up looking completely different once scrambled. 
+genSalt(10) just means "go generate one of these random ingredients for me."
+ */
+const hashedPassword = await bcrypt.hash(password, salt); //we hash the password using salt
+
+//including pulling out the same salt that's secretly stored inside the saved hash
 
 
 
 
 
 
-    // IMPORTANT:
-    // Do NOT hash password here.
-    //
-    // User model pre("save") hook
-    // automatically hashes it.
+    
 
-    const user = await User.create({
+    const user = await User.create({ 
 
         name,
 
         email,
 
-        password,
+        password:hashedPassword,
 
-        phone,
+        phone, //it will fill phone:phone
 
         role:userRole
 
@@ -126,7 +133,7 @@ const registerUser = async (data) => {
 
         token
 
-    };
+    }; //so result in controller gets this we return token as the controller sends that as a part of response so we need to return everything that we want the response to contain
 
 
 };
@@ -187,13 +194,8 @@ const loginUser = async (data) => {
 
 
 
-    // Compare password using schema method
 
-    const isMatch =
-        await user.comparePassword(
-            password
-        );
-
+    const isMatch = await bcrypt.compare(password, user.password); //bcrypt.compare what it does is basically scrambles what you have typed and checks it with the scrambled one in the database 
 
 
 

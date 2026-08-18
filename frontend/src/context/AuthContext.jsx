@@ -19,15 +19,15 @@ export function AuthProvider({ children }) {
       .then((data) => setUser(data.user))
       .catch(() => setUser(null))
       .finally(() => setChecking(false));
-  }, []);
+  }, []); //runs on every render in the background no need to click anything
 
   const register = async (payload) => {
-    const data = await registerRequest(payload);
+    const data = await registerRequest(payload); //as it returns a promise
     setUser(data.user);
     return data.user;
   };
 
-  const login = async (payload) => {
+  const login = async (payload) => { //these are the functions that run authentication and check if u are authenticated
     const data = await loginRequest(payload);
     setUser(data.user);
     return data.user;

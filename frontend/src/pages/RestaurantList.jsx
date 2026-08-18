@@ -9,8 +9,8 @@ export default function RestaurantList() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  useEffect(() => {
-    getAllRestaurants()
+  useEffect(() => { //as we want the restaurants to be displayed whenever there is a render without clicking anything
+    getAllRestaurants() //calls backend
       .then((data) => setRestaurants(data.restaurants))
       .catch((err) => setError(err.response?.data?.message || "Couldn't load restaurants."))
       .finally(() => setLoading(false));

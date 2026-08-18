@@ -17,20 +17,20 @@ const TAX_RATE = 0.05;
 
 // Order status transitions
 
-const ORDER_STATUS_TRANSITIONS = {
+const ORDER_STATUS_TRANSITIONS = { //this refers to for every status what is the transition refers to the order lifecycle and from one state what are the possible states it can transition into
 
-    placed: [
+    placed: [ //so for placed the order can go to accept or reject or cancelled
         "accepted",
         "rejected",
         "cancelled"
     ],
 
-    accepted: [
+    accepted: [ //cancel can only happen until here after that order cannot be cancelled  if rest accepts order then it can go to preparation or can be cancelled by the user
         "preparing",
         "cancelled"
     ],
 
-    preparing: [
+    preparing: [ //once the prep starts then there is no scope of cancel
         "ready"
     ],
 
@@ -69,14 +69,17 @@ const NON_CANCELLABLE_STATUSES = [
 // ======================================
 // Create Order
 // ======================================
+/*
+Think about why the order has to exist first: your payment.service.js's createPayment function takes an orderId and creates a Stripe PaymentIntent with that ID in its metadata. Stripe needs something to attach the charge to. You can't create a payment for an order that doesn't exist yet — so the order has to be created as a "pending" shell first, then payment gets attempted against it. This is exactly how real checkout flows work (Amazon, Swiggy, etc. all create an order record before the charge settles) — it's what lets you show the customer an order confirmation page immediately, with a status that updates once payment clears.
+ */
 
 const createOrder = async (
 
-    customerId,
+    customerId, //the person who will receive the order 
 
-    deliveryAddress,
+    deliveryAddress, //where to deliver the order 
 
-    paymentMethod
+    paymentMethod 
 
 ) => {
 
@@ -90,7 +93,7 @@ const createOrder = async (
 
 
 
-    const cart = await Cart.findOne({
+    const cart = await Cart.findOne({ //to check if cart is filled
 
         user: customerId
 
@@ -111,11 +114,11 @@ const createOrder = async (
     // ======================================
     // Ensure every menu item is still available
     // ======================================
-
+//so that you dont order an unavailable item
     for (const item of cart.items) {
 
         const menuItem =
-            await MenuItem.findById(item.menuItem);
+            await MenuItem.findById(item.menuItem); //first check if that item even exists 
 
         if (!menuItem) {
 
@@ -171,7 +174,7 @@ const createOrder = async (
 
             deliveryAddress,
 
-            pricing: {
+            pricing: { //the price of the order
 
                 subtotal,
 
@@ -186,6 +189,7 @@ const createOrder = async (
             }
 
         });
+        //after storing the order and clicking checkout we usually clear the cart right but if the payment has failed the cart should not be cleared the cart should only be cleared if payment has succeeded
 
 
 
@@ -199,7 +203,7 @@ const createOrder = async (
     // markPaymentSucceeded in payment.service.js.)
     // ======================================
 
-    if (paymentMethod !== "card") {
+    if (paymentMethod !== "card") { //if cod then just clear the cart
 
         cart.items = [];
 
@@ -227,7 +231,7 @@ const getCustomerOrders = async (
     const orders = await Order.find({
         customer: customerId
     })
-        .sort({ createdAt: -1 })
+        .sort({ createdAt: -1 }) //based on recency
         .populate("restaurant", "name images")
         .populate("deliveryPartner");
 
@@ -329,7 +333,7 @@ const cancelOrder = async (
     }
 
     if (
-        NON_CANCELLABLE_STATUSES.includes(
+        NON_CANCELLABLE_STATUSES.includes( //then u cannot cancel
             order.orderStatus
         )
     ) {
@@ -340,7 +344,7 @@ const cancelOrder = async (
 
     }
 
-    order.orderStatus = "cancelled";
+    order.orderStatus = "cancelled"; //otherwise just change the status
 
     order.cancelReason =
         reason || "Cancelled by customer";
@@ -506,7 +510,7 @@ const updateOrderStatus = async (
 
         throw new Error(
 
-            `Cannot change order status from "${order.orderStatus}" to "${status}".`
+            `Cannot change order status from "${order.orderStatus}" to "${status}".` //if it cannot transition to that
 
         );
 
@@ -514,7 +518,7 @@ const updateOrderStatus = async (
 
 
 
-    order.orderStatus = status;
+    order.orderStatus = status; //make the transition
 
     await order.save();
 
@@ -530,8 +534,29 @@ const updateOrderStatus = async (
 // profile — a delivery partner can only assign themself,
 // never an arbitrary partner id from the client)
 // ======================================
+/*
+1. Verify the delivery partner
 
-const assignDeliveryPartner = async (
+Make sure the logged-in user actually has a delivery-partner profile.
+
+2. Ensure the partner is available
+
+Only partners whose status is online can accept deliveries.
+
+3. Perform advisory checks
+
+Check whether the order exists, is ready, and is currently unassigned so you can return helpful error messages.
+
+4. Atomically claim the order
+
+Use a single MongoDB operation that says “find a ready, unassigned order and assign me to it” so only one request can win.
+
+5. Mark the partner as busy
+
+After the claim succeeds, update the delivery partner so they cannot immediately take another order.
+ */
+
+const assignDeliveryPartner = async ( //only a delivery partner can assign himself to the order every order has to be assigned a delivery partner
     orderId,
     userId
 ) => {
@@ -591,7 +616,7 @@ const assignDeliveryPartner = async (
     // (orderStatus: "ready", deliveryPartner: null) -- the other gets
     // null back, even though both passed the advisory checks above.
 
-    const order = await Order.findOneAndUpdate(
+    const order = await Order.findOneAndUpdate( //so that its an atomic action
         {
             _id: orderId,
             orderStatus: "ready",
@@ -602,7 +627,7 @@ const assignDeliveryPartner = async (
             orderStatus: "out_for_delivery"
         },
         {
-            new: true
+            new: true //By default, findOneAndUpdate() returns the old document.
         }
     );
 
@@ -638,7 +663,7 @@ const updateDeliveryStatus = async (
     status
 ) => {
 
-    if (!DELIVERY_UPDATABLE_STATUSES.includes(status)) {
+    if (!DELIVERY_UPDATABLE_STATUSES.includes(status)) { //
         throw new Error(
             "Invalid delivery status."
         );
@@ -700,21 +725,21 @@ const getAvailableOrders = async () => {
     const orders =
         await Order.find({
 
-            orderStatus: "ready",
+            orderStatus: "ready", //is status is ready and no delivery partner has been assigned to it yet 
 
             deliveryPartner: null
 
         })
         .sort({
 
-            createdAt: -1
+            createdAt: -1 //based on recency
 
         })
         .populate(
             "restaurant",
             "name address images"
         )
-        .populate(
+        .populate( //replaces the id with the info
             "customer",
             "name phone"
         );

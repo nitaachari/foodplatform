@@ -12,7 +12,7 @@ export default function Login() {
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
-  const handleChange = (e) =>
+  const handleChange = (e) => //onchange=handlechange we use onchange for forms or any text
     setForm((f) => ({ ...f, [e.target.name]: e.target.value }));
 
   const handleSubmit = async (e) => {
@@ -31,7 +31,7 @@ export default function Login() {
       // If user was redirected here from a protected page, honor location.state.from unless role overrides it
       const redirectedFrom = location.state?.from?.pathname;
 
-      switch (userRole) {
+      switch (userRole) { //based on role naviagate that person to the right ui
         case "restaurant":
           navigate("/restaurant/dashboard", { replace: true });
           break;

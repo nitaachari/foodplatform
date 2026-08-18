@@ -40,6 +40,6 @@ export default function RestaurantCard({ restaurant }) {
           {restaurant.address?.city}
         </p>
       </div>
-    </Link>
+    </Link> //see it wraps the card element in Link tag as its a clickable card
   );
 }

@@ -11,9 +11,9 @@ const stripe = Stripe(process.env.STRIPE_SECRET_KEY);
 // ======================================
 // Create Payment Attempt
 // ======================================
-
+//to create payments
 const createPayment = async (
-    orderId,
+    orderId, //we get this from frontend
     userId,
     paymentMethod
 ) => {
@@ -107,7 +107,7 @@ const createPayment = async (
             {
                 // Prevents duplicate PaymentIntents if the client
                 // retries this call for the same attempt.
-                idempotencyKey: `order_${order._id}_attempt_${previousAttempts + 1}`
+                idempotencyKey: `order_${order._id}_attempt_${previousAttempts + 1}` //its basically a unique identifier for this payment intent so that if due to network issues server creates two or multiple payment intents for the same order the customer wont be charged twice as stripe will be like oh i have seen this identifier before hence i will not charge it again
             }
         );
 
@@ -119,21 +119,35 @@ const createPayment = async (
 
 
 
+    // Build the base fields first, then only ADD
+    // stripePaymentIntentId for card payments — leaving the key
+    // out entirely for cod, rather than setting it to null.
+    // A sparse unique index only skips documents where the field
+    // is truly absent; an explicit null still counts as a real
+    // value and would collide across every cod payment.
+
+    const paymentData = {
+
+        order: order._id,
+        user: userId,
+        amount: order.pricing.total,
+        paymentMethod,
+        gateway: paymentMethod === "card" ? "stripe" : "mock",
+        status: "pending",
+
+        attemptNumber:
+            previousAttempts + 1
+
+    };
+
+    if (paymentMethod === "card") {
+
+        paymentData.stripePaymentIntentId = stripePaymentIntentId;
+
+    }
+
     const payment =
-        await Payment.create({
-
-            order: order._id,
-            user: userId,
-            amount: order.pricing.total,
-            paymentMethod,
-            gateway: paymentMethod === "card" ? "stripe" : "mock",
-            status: "pending",
-            stripePaymentIntentId,
-
-            attemptNumber:
-                previousAttempts + 1
-
-        });
+        await Payment.create(paymentData);
 
 
 

@@ -3,7 +3,7 @@ const jwt = require("jsonwebtoken");
 
 const generateToken = (userId)=>{
 
-    return jwt.sign(
+    return jwt.sign( //this basically takes payload secret and options
         {
             id:userId
         },

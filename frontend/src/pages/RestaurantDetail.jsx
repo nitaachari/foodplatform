@@ -11,7 +11,7 @@ import Spinner from "../components/ui/Spinner";
 import EmptyState from "../components/ui/EmptyState";
 
 export default function RestaurantDetail() {
-  const { id } = useParams();
+  const { id } = useParams(); //so you get the restaurant id that will be used to send to the backend and retrieve information about that restaurant 
   const { user } = useAuth();
   const { cart, addItem, updateItem, removeItem, clearCart, refreshCart } = useCart();
   const navigate = useNavigate();
@@ -124,7 +124,7 @@ export default function RestaurantDetail() {
           <CategoryTabs
             categories={categories}
             active={activeCategory}
-            onChange={handleCategoryChange}
+            onChange={handleCategoryChange} //if the user switches categories you have to filter the menu based on that
           />
         </div>
       )}
@@ -145,7 +145,7 @@ export default function RestaurantDetail() {
               <div>
                 {items.map((item) => (
                   <MenuItemCard
-                    key={item._id}
+                    key={item._id} //give each its key as id
                     item={item}
                     cartLine={cartLineFor(item._id)}
                     onAdd={handleAdd}

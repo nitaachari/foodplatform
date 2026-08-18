@@ -22,7 +22,7 @@ export default function Register() {
     setForm((f) => ({ ...f, [e.target.name]: e.target.value }));
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
+    e.preventDefault(); //by default reloads the page onsubmit
     setError("");
     setSubmitting(true);
 

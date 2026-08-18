@@ -4,12 +4,12 @@ const User = require("../models/User");
 
 
 
-const protect = async(req,res,next)=>{
+const protect = async(req,res,next)=>{ //middleware
 
     try{
 
 
-        const token = req.cookies.token;
+        const token = req.cookies.token; //its a cookie and the name is token
 
 
         if(!token){
@@ -22,14 +22,14 @@ const protect = async(req,res,next)=>{
 
 
 
-        const decoded = jwt.verify(
+        const decoded = jwt.verify( //verify the jwt everytime to check if the right user is authenticated
             token,
             process.env.JWT_SECRET
         );
 
 
 
-        const user = await User.findById(
+        const user = await User.findById( //and then we send the user
             decoded.id
         );
 
@@ -45,7 +45,7 @@ const protect = async(req,res,next)=>{
 
 
 
-        req.user = user;
+        req.user = user; //modify so it can be used by the next function that runs after middleware
 
 
         next();
