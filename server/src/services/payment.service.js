@@ -6,88 +6,47 @@ const Stripe = require("stripe");
 const stripe = Stripe(process.env.STRIPE_SECRET_KEY);
 
 
-
-
-// ======================================
 // Create Payment Attempt
-// ======================================
+
 //to create payments
 const createPayment = async (
     orderId, //we get this from frontend
     userId,
-    paymentMethod
+    paymentMethod //card or cash
 ) => {
-
-
-    const order =
-        await Order.findById(orderId);
-
-
+    const order = await Order.findById(orderId);
 
     if (!order) {
-
-        throw new Error(
-            "Order not found."
-        );
-
+        throw new Error("Order not found.");
     }
-
-
-
 
     // Ensure only order owner can pay
 
-    if (
-        order.customer.toString()
-        !== userId.toString()
-    ) {
-
-        throw new Error(
-            "You are not authorized to pay for this order."
-        );
-
+    if (order.customer.toString() !== userId.toString()) {
+        throw new Error("You are not authorized to pay for this order.");
     }
-
-
-
 
     // Prevent payment after successful payment
 
-    if (
-        order.paymentStatus === "paid"
-    ) {
-
-        throw new Error(
-            "Order has already been paid."
-        );
-
+    if (order.paymentStatus === "paid") {
+        throw new Error("Order has already been paid.");
     }
-
-
-
 
     // Count previous payment attempts
 
-    const previousAttempts =
-        await Payment.countDocuments({
+    const previousAttempts = await Payment.countDocuments({
+        order: orderId
+    });
 
-            order: orderId
-
-        });
-
-
-
-
-    // ======================================
+    
     // Card payments go through Stripe.
     // "cod" keeps the existing manual/mock flow for now.
-    // ======================================
+    
 
     let stripePaymentIntentId = null;
     let clientSecret = null;
 
     if (paymentMethod === "card") {
-
         // Stripe expects the amount in the smallest currency
         // unit — paise for INR.
         const amountInPaise = Math.round(order.pricing.total * 100);
@@ -113,345 +72,160 @@ const createPayment = async (
 
         stripePaymentIntentId = intent.id;
         clientSecret = intent.client_secret;
-
     }
 
-
-
-
-    // Build the base fields first, then only ADD
-    // stripePaymentIntentId for card payments — leaving the key
-    // out entirely for cod, rather than setting it to null.
-    // A sparse unique index only skips documents where the field
-    // is truly absent; an explicit null still counts as a real
-    // value and would collide across every cod payment.
+    
 
     const paymentData = {
-
         order: order._id,
         user: userId,
         amount: order.pricing.total,
-        paymentMethod,
+        paymentMethod, //variable is same so automatically fills
         gateway: paymentMethod === "card" ? "stripe" : "mock",
         status: "pending",
-
-        attemptNumber:
-            previousAttempts + 1
-
+        attemptNumber: previousAttempts + 1
     };
 
     if (paymentMethod === "card") {
-
-        paymentData.stripePaymentIntentId = stripePaymentIntentId;
-
+        paymentData.stripePaymentIntentId = stripePaymentIntentId; //only put for card not cod
     }
 
-    const payment =
-        await Payment.create(paymentData);
-
-
-
+    const payment = await Payment.create(paymentData);
 
     // clientSecret is single-use and only needed by the frontend
     // for this specific request — it is never persisted.
     return { payment, clientSecret };
-
-
 };
 
 
-
-
-
-
-
-
-// ======================================
 // Verify Payment
 // (manual flow — cod / non-Stripe methods only.
 // Card payments are confirmed by the Stripe webhook,
 // see markPaymentSucceeded / markPaymentFailed below,
 // since a client can never be trusted to self-report
 // that a real charge succeeded.)
-// ======================================
-
-const verifyPayment = async (
-
-    paymentId,
-
-    transactionId
-
-) => {
 
 
-
-    const payment =
-        await Payment.findById(paymentId);
-
-
-
+const verifyPayment = async (paymentId,transactionId) => { //for cod and updates payment
+    const payment = await Payment.findById(paymentId);
 
     if (!payment) {
-
-        throw new Error(
-            "Payment not found."
-        );
-
+        throw new Error("Payment not found.");
     }
 
-
-
-    if (
-        payment.gateway === "stripe"
-    ) {
-
+    if (payment.gateway === "stripe") {
         throw new Error(
             "Card payments are confirmed automatically by Stripe. Check the payment status instead of verifying manually."
         );
-
     }
 
-
-
-    if (
-        payment.status === "completed"
-    ) {
-
-        throw new Error(
-            "Payment already completed."
-        );
-
+    if (payment.status === "completed") {
+        throw new Error("Payment already completed.");
     }
-
-
 
     // Check if another attempt already succeeded
 
-    const existingSuccessfulPayment =
-        await Payment.findOne({
+    const existingSuccessfulPayment = await Payment.findOne({
+        order: payment.order,
+        status: "completed"
+    });
 
-            order: payment.order,
-
-            status:"completed"
-
-        });
-
-
-
-    if(existingSuccessfulPayment){
-
-        throw new Error(
-            "Order is already paid."
-        );
-
+    if (existingSuccessfulPayment) {
+        throw new Error("Order is already paid.");
     }
-
-
 
     payment.status = "completed";
 
-
-    payment.transactionId =
-        transactionId;
+    payment.transactionId = transactionId;
     payment.paidAt = new Date();
 
-
     payment.metadata = {
-
-        verified:true
-
+        verified: true
     };
-
-
 
     await payment.save();
 
-
-
-
     // Update order payment status
 
-    const order =
-        await Order.findById(
-            payment.order
-        );
-
-
+    const order = await Order.findById(payment.order);
 
     order.paymentStatus = "paid";
 
-
-    order.payment =
-        payment._id;
-
-
+    order.payment = payment._id;
 
     await order.save();
 
-
-
-
     return payment;
-
-
 };
 
 
-
-
-
-
-
-
-// ======================================
 // Get Payment By ID
-// ======================================
+
 
 const getPaymentById = async (
-
     paymentId,
-
     userId
-
 ) => {
+    const payment = await Payment.findById(paymentId).populate("order");
 
-
-
-    const payment =
-        await Payment.findById(paymentId)
-        .populate("order");
-
-
-
-
-
-    if(!payment){
-
-        throw new Error(
-            "Payment not found."
-        );
-
+    if (!payment) {
+        throw new Error("Payment not found.");
     }
 
-
-
-
-
-    if(
-        payment.user.toString()
-        !== userId.toString()
-    ){
-
-        throw new Error(
-            "Unauthorized."
-        );
-
+    if (payment.user.toString() !== userId.toString()) {
+        throw new Error("Unauthorized.");
     }
-
-
-
-
 
     return payment;
-
-
 };
 
 
-
-
-
-
-
-
-// ======================================
 // Get All Payments For Order
-// ======================================
+
 
 const getPaymentByOrderId = async (
-
     orderId,
-
     userId
-
 ) => {
+    const payments = await Payment.find({
+        order: orderId,
+        user: userId
+    }).sort({
+        createdAt: -1
+    });
 
-
-
-    const payments =
-        await Payment.find({
-
-            order:orderId,
-
-            user:userId
-
-        })
-        .sort({
-
-            createdAt:-1
-
-        });
-
-
-
-
-
-    if(
-        payments.length === 0
-    ){
-
-        throw new Error(
-            "No payment attempts found."
-        );
-
+    if (payments.length === 0) {
+        throw new Error("No payment attempts found.");
     }
 
-
-
-
-
     return payments;
-
-
 };
 
 
-
-
-// ======================================
 // Mark Payment Succeeded
 // (called from the Stripe webhook handler — this is the
 // authoritative confirmation path for card payments, not
 // anything the client submits directly)
-// ======================================
+//webhook
 
-const markPaymentSucceeded = async (
 
-    stripePaymentIntentId
-
-) => {
-
-    const payment =
-        await Payment.findOne({ stripePaymentIntentId });
+const markPaymentSucceeded = async (stripePaymentIntentId) => { //This is called when Stripe tells your server that the payment succeeded.
+    const payment = await Payment.findOne({ stripePaymentIntentId }); //based on paymentintent id
 
     if (!payment) {
-
         // Webhook arrived for a PaymentIntent we don't recognize —
-        // log and ignore rather than throwing, since Stripe will
-        // retry on a non-2xx response.
+      
+        
         console.warn(
             `Stripe webhook: no Payment found for PaymentIntent ${stripePaymentIntentId}`
         );
         return null;
-
     }
 
     if (payment.status === "completed") {
-
         // Already processed (Stripe can send duplicate webhook
         // deliveries) — nothing further to do.
         return payment;
-
     }
 
     payment.status = "completed";
@@ -463,7 +237,6 @@ const markPaymentSucceeded = async (
     const order = await Order.findById(payment.order);
 
     if (order) {
-
         order.paymentStatus = "paid";
         order.payment = payment._id;
 
@@ -476,12 +249,10 @@ const markPaymentSucceeded = async (
         const cart = await Cart.findOne({ user: payment.user });
 
         if (cart) {
-
             cart.items = [];
             cart.totalAmount = 0;
 
             await cart.save();
-
         }
 
         // TODO: once Socket.io is wired up (see sockets/index.js),
@@ -491,53 +262,34 @@ const markPaymentSucceeded = async (
         // getIO().to(`order:${order._id}`).emit("payment:completed", {
         //     orderId: order._id
         // });
-
     }
 
     return payment;
-
 };
 
 
-
-
-// ======================================
 // Mark Payment Failed
-// ======================================
 
-const markPaymentFailed = async (
 
-    stripePaymentIntentId
-
-) => {
-
-    const payment =
-        await Payment.findOne({ stripePaymentIntentId });
+const markPaymentFailed = async (stripePaymentIntentId) => {
+    const payment = await Payment.findOne({ stripePaymentIntentId });
 
     if (!payment) {
-
         console.warn(
             `Stripe webhook: no Payment found for PaymentIntent ${stripePaymentIntentId}`
         );
         return null;
-
     }
 
     if (payment.status !== "completed") {
-
         payment.status = "failed";
         await payment.save();
-
     }
 
     return payment;
-
 };
 
 
-
-
-// ======================================
 // Confirm Card Payment
 // (dev/local alternative to the webhook — the server retrieves the
 // PaymentIntent status directly from Stripe's API rather than trusting
@@ -547,67 +299,42 @@ const markPaymentFailed = async (
 // succeeded after the browser stopped talking to us — see the caveat
 // in chat. Fine for testing, worth pairing with the real webhook
 // before going to production.)
-// ======================================
+//development/testing alternative if webhook does not work
+
 
 const confirmCardPayment = async (
-
     paymentId,
-
     userId
-
 ) => {
-
     const payment = await Payment.findById(paymentId);
 
     if (!payment) {
-
-        throw new Error(
-            "Payment not found."
-        );
-
+        throw new Error("Payment not found.");
     }
 
     if (payment.user.toString() !== userId.toString()) {
-
-        throw new Error(
-            "Unauthorized."
-        );
-
+        throw new Error("Unauthorized.");
     }
 
     if (payment.gateway !== "stripe") {
-
-        throw new Error(
-            "Not a Stripe payment."
-        );
-
+        throw new Error("Not a Stripe payment.");
     }
 
     if (payment.status === "completed") {
-
         return payment;
-
     }
 
-    const intent = await stripe.paymentIntents.retrieve(
-
-        payment.stripePaymentIntentId
-
-    );
+    const intent = await stripe.paymentIntents.retrieve(payment.stripePaymentIntentId); //backend verifies the payment we ask stripe for payment status
 
     if (intent.status === "succeeded") {
-
         return markPaymentSucceeded(payment.stripePaymentIntentId);
-
     }
 
     if (intent.status === "processing") {
-
         // Still settling on Stripe's side — not failed, just not
         // done yet. Leave it pending; the frontend can retry the
         // confirm call after a short delay if needed.
         return payment;
-
     }
 
     // requires_payment_method, requires_action, canceled, etc. —
@@ -615,33 +342,15 @@ const confirmCardPayment = async (
     payment.status = "failed";
     await payment.save();
 
-    throw new Error(
-
-        `Payment not completed (status: ${intent.status}).`
-
-    );
-
+    throw new Error(`Payment not completed (status: ${intent.status}).`);
 };
 
-
-
-
 module.exports = {
-
-
     createPayment,
-
     verifyPayment,
-
     getPaymentById,
-
     getPaymentByOrderId,
-
     markPaymentSucceeded,
-
     markPaymentFailed,
-
     confirmCardPayment
-
-
 };

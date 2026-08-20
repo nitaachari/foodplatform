@@ -21,3 +21,4 @@ axios.post("/auth/login", {
     password
 });
 */
+//we do this so that instead of writing the above again and again we can just use the function

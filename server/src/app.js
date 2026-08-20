@@ -1,35 +1,32 @@
 const express = require("express");
-const cors = require("cors");//It allows your backend to control which other websites are allowed to make requests to it.
-const helmet = require("helmet"); //its used to set response headers as express sends very few headers and it can be misused 
-const cookieParser = require("cookie-parser");
+const cors = require("cors"); //It allows your backend to control which other websites are allowed to make requests to it.
+const helmet = require("helmet"); //its used to set response headers as express sends very few headers and it can be misused
+const cookieParser = require("cookie-parser"); //cookie-parser = Read cookies from incoming requests and put them in req.cookies makes it easier to access
 const authRoutes = require("./routes/auth.routes");
 const restaurantRoutes = require("./routes/restaurant.routes");
 const categoryRoutes = require("./routes/category.routes");
-const menuItemRoutes =require("./routes/menuItem.routes");
-const cartRoutes =require("./routes/cart.routes");
-const orderRoutes =require("./routes/order.routes");
+const menuItemRoutes = require("./routes/menuItem.routes");
+const cartRoutes = require("./routes/cart.routes");
+const orderRoutes = require("./routes/order.routes");
 const paymentRoutes = require("./routes/payment.routes");
 const deliveryPartnerRoutes = require("./routes/deliveryPartner.routes");
 const reviewRoutes = require("./routes/review.routes");
 const app = express();
 
-
 // Security Middleware
 
 app.use(
-    helmet()
+    helmet() //middlewares Helmet then adds security-related HTTP response headers.
 );
-
 
 // CORS
 
 app.use(
     cors({
-        origin:"http://localhost:5173",
-        credentials:true
+        origin: process.env.CLIENT_URL,
+        credentials: true
     })
 );
-
 
 // Stripe Webhook
 // Must be registered BEFORE express.json() below — Stripe's
@@ -40,76 +37,43 @@ app.use(
 
 app.post(
     "/api/payments/webhook",
-    express.raw({ type: "application/json" }),
+    express.raw({ type: "application/json" }), //needs raw express data
     require("./controllers/payment.controller").handleStripeWebhook
 );
 
-
 // Body Parser
 
-app.use(
-    express.json()
-);
-
+app.use(express.json());
 
 app.use(
     express.urlencoded({
-        extended:true
+        extended: true
     })
 );
 
-
 // Cookies
 
-app.use(
-    cookieParser()
-);
-
+app.use(cookieParser());
 
 // Test Route
 
-app.get(
-    "/",
-    (req,res)=>{
-
-        res.json({
-            message:"Food Ordering API Running"
-        });
-
-    }
-);
-app.use( 
+app.get("/", (req, res) => {
+    res.json({
+        message: "Food Ordering API Running"
+    });
+});
+app.use(
     "/api/auth",
     authRoutes //this a middleware
-); //now what happens here is basically we are routing or rather lets say run this middleware for all paths that have this url 
+); //now what happens here is basically we are routing or rather lets say run this middleware for all paths that have this url
 app.use("/api/restaurants", restaurantRoutes);
-app.use(
-    "/api/categories",
-    categoryRoutes
-);
-app.use(
-    "/api/menu",
-    menuItemRoutes
-);
-app.use(
-    "/api/cart",
-    cartRoutes
-);
-app.use(
-    "/api/orders",
-    orderRoutes
-);
+app.use("/api/categories", categoryRoutes);
+app.use("/api/menu", menuItemRoutes);
+app.use("/api/cart", cartRoutes);
+app.use("/api/orders", orderRoutes);
 app.use("/api/payments", paymentRoutes);
-app.use(
-    "/api/delivery-partners",
-    deliveryPartnerRoutes
-);
+app.use("/api/delivery-partners", deliveryPartnerRoutes);
 
-app.use(
-    "/api/reviews",
-    reviewRoutes
-);
-
-
+app.use("/api/reviews", reviewRoutes);
 
 module.exports = app;

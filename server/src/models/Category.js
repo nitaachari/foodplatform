@@ -9,7 +9,6 @@ const categorySchema = new Schema(
             ref: "Restaurant",
             required: true
         },
-
         name: {
             type: String,
             required: true,
